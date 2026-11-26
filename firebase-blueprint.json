@@ -1,0 +1,490 @@
+{
+  "entities": {
+    "PlatformConfig": {
+      "title": "PlatformConfig",
+      "description": "Global Super Admin controls, 50:50 revenue sharing settings, and country/language feature flags.",
+      "type": "object",
+      "properties": {
+        "creatorSharePercent": { "type": "number" },
+        "platformSharePercent": { "type": "number" },
+        "indiaMinPayoutInr": { "type": "number" },
+        "adsEnabled": { "type": "boolean" },
+        "preRollAdsEnabled": { "type": "boolean" },
+        "midRollAdsEnabled": { "type": "boolean" },
+        "shortsAdsEnabled": { "type": "boolean" },
+        "sponsoredHomeAdsEnabled": { "type": "boolean" },
+        "adFrequency": { "type": "integer" },
+        "monetizationEnabled": { "type": "boolean" },
+        "autoPayoutEnabled": { "type": "boolean" },
+        "registrationEnabled": { "type": "boolean" },
+        "uploadsEnabled": { "type": "boolean" },
+        "longVideosEnabled": { "type": "boolean" },
+        "shortsEnabled": { "type": "boolean" },
+        "liveStreamingEnabled": { "type": "boolean" },
+        "commentsEnabled": { "type": "boolean" },
+        "likesEnabled": { "type": "boolean" },
+        "subscriptionsEnabled": { "type": "boolean" },
+        "followingEnabled": { "type": "boolean" },
+        "chatEnabled": { "type": "boolean" },
+        "searchEnabled": { "type": "boolean" },
+        "notificationsEnabled": { "type": "boolean" },
+        "downloadsEnabled": { "type": "boolean" },
+        "communityPostsEnabled": { "type": "boolean" },
+        "maintenanceMode": { "type": "boolean" },
+        "announcementText": { "type": "string" },
+        "disabledCountries": { "type": "array" },
+        "disabledLanguages": { "type": "array" },
+        "adDisabledCountries": { "type": "array" },
+        "monetizationDisabledCountries": { "type": "array" },
+        "updatedBy": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["creatorSharePercent", "platformSharePercent", "indiaMinPayoutInr", "adsEnabled", "monetizationEnabled", "autoPayoutEnabled", "updatedAt"]
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Private user account, PII, preferences, safety controls, and creator wallet balances.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "displayName": { "type": "string" },
+        "handle": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "bio": { "type": "string" },
+        "photoUrl": { "type": "string" },
+        "countryCode": { "type": "string" },
+        "languageCode": { "type": "string" },
+        "role": { "type": "string", "enum": ["USER", "CREATOR", "MODERATOR", "ADMIN"] },
+        "accountStatus": { "type": "string", "enum": ["ACTIVE", "TEMP_BANNED", "PERMA_BANNED", "SUSPENDED"] },
+        "restrictedMode": { "type": "boolean" },
+        "minorMode": { "type": "boolean" },
+        "twoFactorEnabled": { "type": "boolean" },
+        "watchHistoryPaused": { "type": "boolean" },
+        "uploadRestricted": { "type": "boolean" },
+        "commentRestricted": { "type": "boolean" },
+        "monetizationEnabled": { "type": "boolean" },
+        "kycVerified": { "type": "boolean" },
+        "upiId": { "type": "string" },
+        "bankAccountMasked": { "type": "string" },
+        "estimatedEarningsInr": { "type": "number" },
+        "confirmedEarningsInr": { "type": "number" },
+        "availableBalanceInr": { "type": "number" },
+        "pendingBalanceInr": { "type": "number" },
+        "totalPaidOutInr": { "type": "number" },
+        "fontScaleMultiplier": { "type": "number" },
+        "highContrastMode": { "type": "boolean" },
+        "darkThemeMode": { "type": "string", "enum": ["SYSTEM", "LIGHT", "DARK"] },
+        "interests": { "type": "array" },
+        "notifSubscribers": { "type": "boolean" },
+        "notifComments": { "type": "boolean" },
+        "notifUploads": { "type": "boolean" },
+        "notifEarnings": { "type": "boolean" },
+        "notifPayouts": { "type": "boolean" },
+        "notifSecurity": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "displayName", "handle", "countryCode", "languageCode", "role", "accountStatus", "createdAt", "updatedAt"]
+    },
+    "Channel": {
+      "title": "Channel",
+      "description": "Public creator channel profile without PII.",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string" },
+        "name": { "type": "string" },
+        "handle": { "type": "string" },
+        "description": { "type": "string" },
+        "avatarUrl": { "type": "string" },
+        "bannerKey": { "type": "string" },
+        "countryCode": { "type": "string" },
+        "languageCode": { "type": "string" },
+        "channelStatus": { "type": "string", "enum": ["ACTIVE", "SUSPENDED"] },
+        "subscriberCount": { "type": "integer" },
+        "followerCount": { "type": "integer" },
+        "totalViews": { "type": "integer" },
+        "verified": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "name", "handle", "channelStatus", "createdAt", "updatedAt"]
+    },
+    "Video": {
+      "title": "Video",
+      "description": "Long video or Short/Reel media item with monetization and copyright metadata.",
+      "type": "object",
+      "properties": {
+        "creatorId": { "type": "string" },
+        "creatorName": { "type": "string" },
+        "creatorHandle": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "videoUrl": { "type": "string" },
+        "thumbnailKey": { "type": "string" },
+        "thumbnailUrl": { "type": "string" },
+        "format": { "type": "string", "enum": ["LONG", "SHORT"] },
+        "visibility": { "type": "string", "enum": ["PUBLIC", "UNLISTED", "PRIVATE", "DRAFT", "SCHEDULED"] },
+        "category": { "type": "string" },
+        "languageCode": { "type": "string" },
+        "countryCode": { "type": "string" },
+        "hashtags": { "type": "array" },
+        "durationSec": { "type": "integer" },
+        "maxResolution": { "type": "string" },
+        "musicTitle": { "type": "string" },
+        "musicLicenseId": { "type": "string" },
+        "chaptersSummary": { "type": "string" },
+        "subtitlesText": { "type": "string" },
+        "viewCount": { "type": "integer" },
+        "likeCount": { "type": "integer" },
+        "dislikeCount": { "type": "integer" },
+        "commentCount": { "type": "integer" },
+        "copyrightHash": { "type": "string" },
+        "copyrightStatus": { "type": "string", "enum": ["CLEAR", "WARNING", "DISPUTED", "BLOCKED"] },
+        "monetized": { "type": "boolean" },
+        "adRevenueInr": { "type": "number" },
+        "scheduledPublishAtMs": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["creatorId", "creatorName", "title", "videoUrl", "format", "visibility", "category", "languageCode", "countryCode", "createdAt", "updatedAt"]
+    },
+    "Comment": {
+      "title": "Comment",
+      "description": "Comment or reply on a video.",
+      "type": "object",
+      "properties": {
+        "videoId": { "type": "string" },
+        "userId": { "type": "string" },
+        "authorName": { "type": "string" },
+        "text": { "type": "string" },
+        "parentCommentId": { "type": "string" },
+        "likeCount": { "type": "integer" },
+        "status": { "type": "string", "enum": ["VISIBLE", "HIDDEN"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["videoId", "userId", "authorName", "text", "status", "createdAt", "updatedAt"]
+    },
+    "LiveStream": {
+      "title": "LiveStream",
+      "description": "Live broadcast metadata and moderation state.",
+      "type": "object",
+      "properties": {
+        "creatorId": { "type": "string" },
+        "creatorName": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "streamUrl": { "type": "string" },
+        "category": { "type": "string" },
+        "languageCode": { "type": "string" },
+        "countryCode": { "type": "string" },
+        "status": { "type": "string", "enum": ["LIVE", "ENDED"] },
+        "viewerCount": { "type": "integer" },
+        "blockedUserIds": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["creatorId", "creatorName", "title", "streamUrl", "status", "createdAt", "updatedAt"]
+    },
+    "LiveChatMessage": {
+      "title": "LiveChatMessage",
+      "description": "Real-time message in a live stream room.",
+      "type": "object",
+      "properties": {
+        "streamId": { "type": "string" },
+        "userId": { "type": "string" },
+        "senderName": { "type": "string" },
+        "text": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["streamId", "userId", "senderName", "text", "createdAt"]
+    },
+    "AdCampaign": {
+      "title": "AdCampaign",
+      "description": "Advertiser campaign with placement, country/language targeting, and valid-view telemetry.",
+      "type": "object",
+      "properties": {
+        "advertiserId": { "type": "string" },
+        "advertiserName": { "type": "string" },
+        "title": { "type": "string" },
+        "ctaText": { "type": "string" },
+        "targetUrl": { "type": "string" },
+        "placement": { "type": "string", "enum": ["PRE_ROLL", "MID_ROLL", "SHORTS_FEED", "HOME_SPONSORED"] },
+        "targetCountries": { "type": "array" },
+        "targetLanguages": { "type": "array" },
+        "budgetInr": { "type": "number" },
+        "spentInr": { "type": "number" },
+        "impressions": { "type": "integer" },
+        "validViews": { "type": "integer" },
+        "clicks": { "type": "integer" },
+        "status": { "type": "string", "enum": ["PENDING_REVIEW", "ACTIVE", "PAUSED", "REJECTED", "COMPLETED"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["advertiserId", "advertiserName", "title", "placement", "budgetInr", "status", "createdAt", "updatedAt"]
+    },
+    "RevenueLedgerEntry": {
+      "title": "RevenueLedgerEntry",
+      "description": "Transparent 50:50 ad revenue split ledger record.",
+      "type": "object",
+      "properties": {
+        "creatorId": { "type": "string" },
+        "videoId": { "type": "string" },
+        "campaignId": { "type": "string" },
+        "format": { "type": "string", "enum": ["LONG", "SHORT"] },
+        "countryCode": { "type": "string" },
+        "grossRevenueInr": { "type": "number" },
+        "networkFeeInr": { "type": "number" },
+        "netRevenueInr": { "type": "number" },
+        "creatorSharePercent": { "type": "number" },
+        "platformSharePercent": { "type": "number" },
+        "creatorEarnedInr": { "type": "number" },
+        "platformEarnedInr": { "type": "number" },
+        "status": { "type": "string", "enum": ["ESTIMATED", "CONFIRMED"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["creatorId", "videoId", "campaignId", "netRevenueInr", "creatorSharePercent", "platformSharePercent", "creatorEarnedInr", "platformEarnedInr", "status", "createdAt"]
+    },
+    "PayoutRecord": {
+      "title": "PayoutRecord",
+      "description": "Automatic or manual creator payout transaction with idempotency protection.",
+      "type": "object",
+      "properties": {
+        "creatorId": { "type": "string" },
+        "countryCode": { "type": "string" },
+        "currencyCode": { "type": "string" },
+        "amountInr": { "type": "number" },
+        "taxDeductedInr": { "type": "number" },
+        "netPayoutInr": { "type": "number" },
+        "method": { "type": "string", "enum": ["UPI", "BANK_TRANSFER", "INTL_WIRE"] },
+        "destinationMasked": { "type": "string" },
+        "transactionId": { "type": "string" },
+        "idempotencyKey": { "type": "string" },
+        "status": { "type": "string", "enum": ["PENDING", "PROCESSING", "COMPLETED", "FAILED"] },
+        "failureReason": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["creatorId", "countryCode", "amountInr", "netPayoutInr", "method", "transactionId", "idempotencyKey", "status", "createdAt", "updatedAt"]
+    },
+    "ChatThread": {
+      "title": "ChatThread",
+      "description": "Direct or group chat thread.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "groupChat": { "type": "boolean" },
+        "memberUids": { "type": "array" },
+        "lastMessage": { "type": "string" },
+        "blockedByUids": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "groupChat", "memberUids", "createdAt", "updatedAt"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Message inside a chat thread with denormalized memberUids.",
+      "type": "object",
+      "properties": {
+        "chatId": { "type": "string" },
+        "senderId": { "type": "string" },
+        "senderName": { "type": "string" },
+        "memberUids": { "type": "array" },
+        "messageType": { "type": "string", "enum": ["TEXT", "VOICE_NOTE", "MEDIA"] },
+        "text": { "type": "string" },
+        "attachmentLabel": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["chatId", "senderId", "senderName", "memberUids", "messageType", "text", "createdAt"]
+    },
+    "CopyrightClaim": {
+      "title": "CopyrightClaim",
+      "description": "Audio/video fingerprint similarity report, appeal, and admin review record.",
+      "type": "object",
+      "properties": {
+        "reporterId": { "type": "string" },
+        "targetCreatorId": { "type": "string" },
+        "videoId": { "type": "string" },
+        "videoTitle": { "type": "string" },
+        "matchType": { "type": "string", "enum": ["AUDIO_MATCH", "VIDEO_MATCH", "MANUAL_REPORT"] },
+        "similarityPercent": { "type": "integer" },
+        "status": { "type": "string", "enum": ["WARNING", "APPEALED", "UNDER_REVIEW", "UPHELD", "DISMISSED"] },
+        "appealNote": { "type": "string" },
+        "strikeCount": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["reporterId", "targetCreatorId", "videoId", "matchType", "status", "createdAt", "updatedAt"]
+    },
+    "SupportTicket": {
+      "title": "SupportTicket",
+      "description": "User help, account recovery, payment, or safety report ticket.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "category": { "type": "string", "enum": ["ACCOUNT_RECOVERY", "PAYMENT", "COPYRIGHT", "SAFETY_REPORT", "GENERAL"] },
+        "subject": { "type": "string" },
+        "description": { "type": "string" },
+        "targetId": { "type": "string" },
+        "status": { "type": "string", "enum": ["OPEN", "IN_REVIEW", "RESOLVED"] },
+        "resolutionNote": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "category", "subject", "description", "status", "createdAt", "updatedAt"]
+    },
+    "AdminAuditLog": {
+      "title": "AdminAuditLog",
+      "description": "Immutable admin action and revenue split change audit log.",
+      "type": "object",
+      "properties": {
+        "adminUid": { "type": "string" },
+        "adminEmail": { "type": "string" },
+        "action": { "type": "string" },
+        "targetType": { "type": "string" },
+        "targetId": { "type": "string" },
+        "details": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["adminUid", "adminEmail", "action", "targetType", "targetId", "details", "createdAt"]
+    },
+    "WatchHistoryItem": {
+      "title": "WatchHistoryItem",
+      "description": "User watch history and continue-watching resume position.",
+      "type": "object",
+      "properties": {
+        "videoId": { "type": "string" },
+        "title": { "type": "string" },
+        "creatorName": { "type": "string" },
+        "format": { "type": "string", "enum": ["LONG", "SHORT", "LIVE"] },
+        "positionMs": { "type": "integer" },
+        "durationMs": { "type": "integer" },
+        "thumbnailKey": { "type": "string" },
+        "watchedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["videoId", "title", "format", "positionMs", "durationMs", "watchedAt"]
+    },
+    "Playlist": {
+      "title": "Playlist",
+      "description": "User video playlist including Watch Later.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "privacy": { "type": "string", "enum": ["PUBLIC", "PRIVATE", "UNLISTED"] },
+        "videoIds": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "privacy", "videoIds", "createdAt", "updatedAt"]
+    },
+    "SubscriptionItem": {
+      "title": "SubscriptionItem",
+      "description": "User subscription and follow state for a creator channel.",
+      "type": "object",
+      "properties": {
+        "channelId": { "type": "string" },
+        "channelName": { "type": "string" },
+        "channelHandle": { "type": "string" },
+        "subscribed": { "type": "boolean" },
+        "following": { "type": "boolean" },
+        "bellEnabled": { "type": "boolean" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["channelId", "channelName", "subscribed", "following", "bellEnabled", "updatedAt"]
+    },
+    "NotificationItem": {
+      "title": "NotificationItem",
+      "description": "User notification center item.",
+      "type": "object",
+      "properties": {
+        "category": { "type": "string" },
+        "title": { "type": "string" },
+        "body": { "type": "string" },
+        "read": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["category", "title", "body", "read", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/platform_config/{configId}": {
+      "schema": { "$ref": "#/entities/PlatformConfig" },
+      "description": "Global platform configuration singleton ('global') managed by Super Admin."
+    },
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Private user account profile, preferences, and creator wallet."
+    },
+    "/users/{userId}/watchHistory/{historyId}": {
+      "schema": { "$ref": "#/entities/WatchHistoryItem" },
+      "description": "User watch history and resume playback positions."
+    },
+    "/users/{userId}/playlists/{playlistId}": {
+      "schema": { "$ref": "#/entities/Playlist" },
+      "description": "User playlists and Watch Later."
+    },
+    "/users/{userId}/subscriptions/{channelId}": {
+      "schema": { "$ref": "#/entities/SubscriptionItem" },
+      "description": "User channel subscriptions, follows, and bell preferences."
+    },
+    "/users/{userId}/notifications/{notifId}": {
+      "schema": { "$ref": "#/entities/NotificationItem" },
+      "description": "User notification items."
+    },
+    "/channels/{channelId}": {
+      "schema": { "$ref": "#/entities/Channel" },
+      "description": "Public creator channels."
+    },
+    "/videos/{videoId}": {
+      "schema": { "$ref": "#/entities/Video" },
+      "description": "Long videos and Shorts/Reels."
+    },
+    "/videos/{videoId}/comments/{commentId}": {
+      "schema": { "$ref": "#/entities/Comment" },
+      "description": "Video comments and replies."
+    },
+    "/live_streams/{streamId}": {
+      "schema": { "$ref": "#/entities/LiveStream" },
+      "description": "Live broadcast streams."
+    },
+    "/live_streams/{streamId}/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/LiveChatMessage" },
+      "description": "Live stream chat messages."
+    },
+    "/ad_campaigns/{campaignId}": {
+      "schema": { "$ref": "#/entities/AdCampaign" },
+      "description": "Advertiser campaigns."
+    },
+    "/revenue_ledger/{entryId}": {
+      "schema": { "$ref": "#/entities/RevenueLedgerEntry" },
+      "description": "50:50 creator and BharatTube revenue entries."
+    },
+    "/payouts/{payoutId}": {
+      "schema": { "$ref": "#/entities/PayoutRecord" },
+      "description": "Creator payout records."
+    },
+    "/chats/{chatId}": {
+      "schema": { "$ref": "#/entities/ChatThread" },
+      "description": "Direct and group chat threads."
+    },
+    "/chats/{chatId}/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/ChatMessage" },
+      "description": "Chat messages."
+    },
+    "/copyright_claims/{claimId}": {
+      "schema": { "$ref": "#/entities/CopyrightClaim" },
+      "description": "Copyright detection claims and appeals."
+    },
+    "/support_tickets/{ticketId}": {
+      "schema": { "$ref": "#/entities/SupportTicket" },
+      "description": "Support, safety, and account recovery tickets."
+    },
+    "/admin_audit_logs/{logId}": {
+      "schema": { "$ref": "#/entities/AdminAuditLog" },
+      "description": "Immutable Super Admin audit logs."
+    }
+  }
+}

@@ -1,0 +1,681 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- GLOBAL HELPERS ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        ('email_verified' in request.auth.token &&
+         'email' in request.auth.token &&
+         request.auth.token.email_verified == true &&
+         request.auth.token.email == 'parmeshwarparmeshwar38324@gmail.com')
+      );
+    }
+
+    function isStringBounded(val, minLen, maxLen) {
+      return val is string && val.size() >= minLen && val.size() <= maxLen;
+    }
+
+    function isValidStringList(val, maxItems) {
+      return val is list && val.size() <= maxItems && (val.size() == 0 || val[0] is string);
+    }
+
+    // --- VALIDATION HELPERS ---
+
+    function isValidPlatformConfig(data) {
+      return data.creatorSharePercent is number &&
+             data.platformSharePercent is number &&
+             data.creatorSharePercent >= 0 &&
+             data.platformSharePercent >= 0 &&
+             (data.creatorSharePercent + data.platformSharePercent) == 100 &&
+             data.indiaMinPayoutInr is number && data.indiaMinPayoutInr >= 100 &&
+             data.adsEnabled is bool &&
+             data.preRollAdsEnabled is bool &&
+             data.midRollAdsEnabled is bool &&
+             data.shortsAdsEnabled is bool &&
+             data.sponsoredHomeAdsEnabled is bool &&
+             data.adFrequency is int && data.adFrequency >= 1 && data.adFrequency <= 20 &&
+             data.monetizationEnabled is bool &&
+             data.autoPayoutEnabled is bool &&
+             data.registrationEnabled is bool &&
+             data.uploadsEnabled is bool &&
+             data.longVideosEnabled is bool &&
+             data.shortsEnabled is bool &&
+             data.liveStreamingEnabled is bool &&
+             data.commentsEnabled is bool &&
+             data.likesEnabled is bool &&
+             data.subscriptionsEnabled is bool &&
+             data.followingEnabled is bool &&
+             data.chatEnabled is bool &&
+             data.searchEnabled is bool &&
+             data.notificationsEnabled is bool &&
+             data.downloadsEnabled is bool &&
+             data.communityPostsEnabled is bool &&
+             data.maintenanceMode is bool &&
+             isStringBounded(data.announcementText, 0, 300) &&
+             isValidStringList(data.disabledCountries, 50) &&
+             isValidStringList(data.disabledLanguages, 50) &&
+             isValidStringList(data.adDisabledCountries, 50) &&
+             isValidStringList(data.monetizationDisabledCountries, 50) &&
+             isStringBounded(data.updatedBy, 1, 128) &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidUserProfile(data) {
+      return isStringBounded(data.userId, 1, 128) &&
+             isStringBounded(data.displayName, 1, 60) &&
+             isStringBounded(data.handle, 2, 40) &&
+             isStringBounded(data.email, 0, 120) &&
+             isStringBounded(data.phone, 0, 30) &&
+             isStringBounded(data.bio, 0, 300) &&
+             isStringBounded(data.photoUrl, 0, 500) &&
+             isStringBounded(data.countryCode, 2, 5) &&
+             isStringBounded(data.languageCode, 2, 10) &&
+             data.role in ['USER', 'CREATOR', 'MODERATOR', 'ADMIN'] &&
+             data.accountStatus in ['ACTIVE', 'TEMP_BANNED', 'PERMA_BANNED', 'SUSPENDED'] &&
+             data.restrictedMode is bool &&
+             data.minorMode is bool &&
+             data.twoFactorEnabled is bool &&
+             data.watchHistoryPaused is bool &&
+             data.uploadRestricted is bool &&
+             data.commentRestricted is bool &&
+             data.monetizationEnabled is bool &&
+             data.kycVerified is bool &&
+             isStringBounded(data.upiId, 0, 80) &&
+             isStringBounded(data.bankAccountMasked, 0, 40) &&
+             data.estimatedEarningsInr is number && data.estimatedEarningsInr >= 0 &&
+             data.confirmedEarningsInr is number && data.confirmedEarningsInr >= 0 &&
+             data.availableBalanceInr is number && data.availableBalanceInr >= 0 &&
+             data.pendingBalanceInr is number && data.pendingBalanceInr >= 0 &&
+             data.totalPaidOutInr is number && data.totalPaidOutInr >= 0 &&
+             data.fontScaleMultiplier is number && data.fontScaleMultiplier >= 0.8 && data.fontScaleMultiplier <= 1.6 &&
+             data.highContrastMode is bool &&
+             data.darkThemeMode in ['SYSTEM', 'LIGHT', 'DARK'] &&
+             isValidStringList(data.interests, 15) &&
+             data.notifSubscribers is bool &&
+             data.notifComments is bool &&
+             data.notifUploads is bool &&
+             data.notifEarnings is bool &&
+             data.notifPayouts is bool &&
+             data.notifSecurity is bool &&
+             (!('bharatTubeId' in data) || isStringBounded(data.bharatTubeId, 0, 40)) &&
+             (!('onboardingCompleted' in data) || data.onboardingCompleted is bool) &&
+             (!('activeChannelId' in data) || isStringBounded(data.activeChannelId, 0, 128)) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidChannel(data) {
+      return isStringBounded(data.ownerId, 1, 128) &&
+             isStringBounded(data.name, 2, 60) &&
+             isStringBounded(data.handle, 2, 40) &&
+             isStringBounded(data.description, 0, 500) &&
+             isStringBounded(data.avatarUrl, 0, 500) &&
+             isStringBounded(data.bannerKey, 0, 60) &&
+             isStringBounded(data.countryCode, 2, 5) &&
+             isStringBounded(data.languageCode, 2, 10) &&
+             data.channelStatus in ['ACTIVE', 'SUSPENDED'] &&
+             data.subscriberCount is int && data.subscriberCount >= 0 &&
+             data.followerCount is int && data.followerCount >= 0 &&
+             data.totalViews is int && data.totalViews >= 0 &&
+             data.verified is bool &&
+             (!('category' in data) || isStringBounded(data.category, 1, 40)) &&
+             (!('avatarKey' in data) || isStringBounded(data.avatarKey, 0, 60)) &&
+             (!('bannerUrl' in data) || isStringBounded(data.bannerUrl, 0, 500)) &&
+             (!('socialLinks' in data) || isValidStringList(data.socialLinks, 5)) &&
+             (!('appearanceTheme' in data) || data.appearanceTheme in ['SAFFRON', 'PEACOCK', 'GOLD', 'OBSIDIAN']) &&
+             (!('ownershipVerified' in data) || data.ownershipVerified is bool) &&
+             (!('ownershipProofLabel' in data) || isStringBounded(data.ownershipProofLabel, 0, 120)) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidVideo(data) {
+      return isStringBounded(data.creatorId, 1, 128) &&
+             isStringBounded(data.creatorName, 1, 60) &&
+             isStringBounded(data.creatorHandle, 1, 40) &&
+             isStringBounded(data.title, 2, 120) &&
+             isStringBounded(data.description, 0, 2000) &&
+             isStringBounded(data.videoUrl, 1, 1000) &&
+             isStringBounded(data.thumbnailKey, 0, 100) &&
+             isStringBounded(data.thumbnailUrl, 0, 500) &&
+             data.format in ['LONG', 'SHORT'] &&
+             data.visibility in ['PUBLIC', 'UNLISTED', 'PRIVATE', 'DRAFT', 'SCHEDULED'] &&
+             isStringBounded(data.category, 1, 40) &&
+             isStringBounded(data.languageCode, 2, 10) &&
+             isStringBounded(data.countryCode, 2, 5) &&
+             isValidStringList(data.hashtags, 10) &&
+             data.durationSec is int && data.durationSec >= 0 &&
+             isStringBounded(data.maxResolution, 1, 20) &&
+             isStringBounded(data.musicTitle, 0, 100) &&
+             isStringBounded(data.musicLicenseId, 0, 60) &&
+             isStringBounded(data.chaptersSummary, 0, 1000) &&
+             isStringBounded(data.subtitlesText, 0, 3000) &&
+             data.viewCount is int && data.viewCount >= 0 &&
+             data.likeCount is int && data.likeCount >= 0 &&
+             data.dislikeCount is int && data.dislikeCount >= 0 &&
+             data.commentCount is int && data.commentCount >= 0 &&
+             isStringBounded(data.copyrightHash, 0, 128) &&
+             data.copyrightStatus in ['CLEAR', 'WARNING', 'DISPUTED', 'BLOCKED'] &&
+             data.monetized is bool &&
+             data.adRevenueInr is number && data.adRevenueInr >= 0 &&
+             data.scheduledPublishAtMs is int && data.scheduledPublishAtMs >= 0 &&
+             (!('channelId' in data) || isStringBounded(data.channelId, 0, 128)) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidComment(data) {
+      return isStringBounded(data.videoId, 1, 128) &&
+             isStringBounded(data.userId, 1, 128) &&
+             isStringBounded(data.authorName, 1, 60) &&
+             isStringBounded(data.text, 1, 500) &&
+             isStringBounded(data.parentCommentId, 0, 128) &&
+             data.likeCount is int && data.likeCount >= 0 &&
+             data.status in ['VISIBLE', 'HIDDEN'] &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidLiveStream(data) {
+      return isStringBounded(data.creatorId, 1, 128) &&
+             isStringBounded(data.creatorName, 1, 60) &&
+             isStringBounded(data.title, 2, 120) &&
+             isStringBounded(data.description, 0, 500) &&
+             isStringBounded(data.streamUrl, 1, 1000) &&
+             isStringBounded(data.category, 1, 40) &&
+             isStringBounded(data.languageCode, 2, 10) &&
+             isStringBounded(data.countryCode, 2, 5) &&
+             data.status in ['LIVE', 'ENDED'] &&
+             data.viewerCount is int && data.viewerCount >= 0 &&
+             isValidStringList(data.blockedUserIds, 50) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidLiveMessage(data) {
+      return isStringBounded(data.streamId, 1, 128) &&
+             isStringBounded(data.userId, 1, 128) &&
+             isStringBounded(data.senderName, 1, 60) &&
+             isStringBounded(data.text, 1, 300) &&
+             data.createdAt is timestamp && data.createdAt <= request.time;
+    }
+
+    function isValidAdCampaign(data) {
+      return isStringBounded(data.advertiserId, 1, 128) &&
+             isStringBounded(data.advertiserName, 1, 60) &&
+             isStringBounded(data.title, 2, 120) &&
+             isStringBounded(data.ctaText, 1, 40) &&
+             isStringBounded(data.targetUrl, 0, 500) &&
+             data.placement in ['PRE_ROLL', 'MID_ROLL', 'SHORTS_FEED', 'HOME_SPONSORED'] &&
+             isValidStringList(data.targetCountries, 30) &&
+             isValidStringList(data.targetLanguages, 30) &&
+             data.budgetInr is number && data.budgetInr >= 100 &&
+             data.spentInr is number && data.spentInr >= 0 &&
+             data.impressions is int && data.impressions >= 0 &&
+             data.validViews is int && data.validViews >= 0 &&
+             data.clicks is int && data.clicks >= 0 &&
+             data.status in ['PENDING_REVIEW', 'ACTIVE', 'PAUSED', 'REJECTED', 'COMPLETED'] &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidRevenueEntry(data) {
+      return isStringBounded(data.creatorId, 1, 128) &&
+             isStringBounded(data.videoId, 1, 128) &&
+             isStringBounded(data.campaignId, 1, 128) &&
+             data.format in ['LONG', 'SHORT'] &&
+             isStringBounded(data.countryCode, 2, 5) &&
+             data.grossRevenueInr is number && data.grossRevenueInr >= 0 &&
+             data.networkFeeInr is number && data.networkFeeInr >= 0 &&
+             data.netRevenueInr is number && data.netRevenueInr >= 0 &&
+             data.creatorSharePercent is number &&
+             data.platformSharePercent is number &&
+             (data.creatorSharePercent + data.platformSharePercent) == 100 &&
+             data.creatorEarnedInr is number && data.creatorEarnedInr >= 0 &&
+             data.platformEarnedInr is number && data.platformEarnedInr >= 0 &&
+             data.status in ['ESTIMATED', 'CONFIRMED'] &&
+             data.createdAt is timestamp && data.createdAt <= request.time;
+    }
+
+    function isValidPayout(data) {
+      return isStringBounded(data.creatorId, 1, 128) &&
+             isStringBounded(data.countryCode, 2, 5) &&
+             isStringBounded(data.currencyCode, 2, 6) &&
+             data.amountInr is number && data.amountInr > 0 &&
+             data.taxDeductedInr is number && data.taxDeductedInr >= 0 &&
+             data.netPayoutInr is number && data.netPayoutInr >= 0 &&
+             data.method in ['UPI', 'BANK_TRANSFER', 'INTL_WIRE'] &&
+             isStringBounded(data.destinationMasked, 1, 80) &&
+             isStringBounded(data.transactionId, 1, 80) &&
+             isStringBounded(data.idempotencyKey, 1, 100) &&
+             data.status in ['PENDING', 'PROCESSING', 'COMPLETED', 'FAILED'] &&
+             isStringBounded(data.failureReason, 0, 200) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidChatThread(data) {
+      return isStringBounded(data.title, 1, 80) &&
+             data.groupChat is bool &&
+             data.memberUids is list && data.memberUids.size() >= 1 && data.memberUids.size() <= 20 &&
+             data.memberUids[0] is string &&
+             isStringBounded(data.lastMessage, 0, 300) &&
+             isValidStringList(data.blockedByUids, 20) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidChatMessage(data) {
+      return isStringBounded(data.chatId, 1, 128) &&
+             isStringBounded(data.senderId, 1, 128) &&
+             isStringBounded(data.senderName, 1, 60) &&
+             data.memberUids is list && data.memberUids.size() >= 1 && data.memberUids.size() <= 20 &&
+             data.messageType in ['TEXT', 'VOICE_NOTE', 'MEDIA'] &&
+             isStringBounded(data.text, 1, 1000) &&
+             isStringBounded(data.attachmentLabel, 0, 120) &&
+             data.createdAt is timestamp && data.createdAt <= request.time;
+    }
+
+    function isValidCopyrightClaim(data) {
+      return isStringBounded(data.reporterId, 1, 128) &&
+             isStringBounded(data.targetCreatorId, 1, 128) &&
+             isStringBounded(data.videoId, 1, 128) &&
+             isStringBounded(data.videoTitle, 1, 120) &&
+             data.matchType in ['AUDIO_MATCH', 'VIDEO_MATCH', 'MANUAL_REPORT'] &&
+             data.similarityPercent is int && data.similarityPercent >= 0 && data.similarityPercent <= 100 &&
+             data.status in ['WARNING', 'APPEALED', 'UNDER_REVIEW', 'UPHELD', 'DISMISSED'] &&
+             isStringBounded(data.appealNote, 0, 500) &&
+             data.strikeCount is int && data.strikeCount >= 0 &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidSupportTicket(data) {
+      return isStringBounded(data.userId, 1, 128) &&
+             data.category in ['ACCOUNT_RECOVERY', 'PAYMENT', 'COPYRIGHT', 'SAFETY_REPORT', 'CONTENT_REPORT', 'BUG_REPORT', 'ACCOUNT_DELETION', 'MONETIZATION', 'GENERAL'] &&
+             isStringBounded(data.subject, 2, 120) &&
+             isStringBounded(data.description, 2, 1000) &&
+             isStringBounded(data.targetId, 0, 128) &&
+             data.status in ['OPEN', 'IN_REVIEW', 'RESOLVED'] &&
+             isStringBounded(data.resolutionNote, 0, 500) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidAuditLog(data) {
+      return isStringBounded(data.adminUid, 1, 128) &&
+             isStringBounded(data.adminEmail, 1, 120) &&
+             isStringBounded(data.action, 1, 80) &&
+             isStringBounded(data.targetType, 1, 40) &&
+             isStringBounded(data.targetId, 1, 128) &&
+             isStringBounded(data.details, 1, 500) &&
+             data.createdAt is timestamp && data.createdAt <= request.time;
+    }
+
+    function isValidWatchHistory(data) {
+      return isStringBounded(data.videoId, 1, 128) &&
+             isStringBounded(data.title, 1, 120) &&
+             isStringBounded(data.creatorName, 0, 60) &&
+             data.format in ['LONG', 'SHORT', 'LIVE'] &&
+             data.positionMs is int && data.positionMs >= 0 &&
+             data.durationMs is int && data.durationMs >= 0 &&
+             isStringBounded(data.thumbnailKey, 0, 100) &&
+             data.watchedAt is timestamp && data.watchedAt <= request.time;
+    }
+
+    function isValidPlaylist(data) {
+      return isStringBounded(data.title, 1, 80) &&
+             isStringBounded(data.description, 0, 300) &&
+             data.privacy in ['PUBLIC', 'PRIVATE', 'UNLISTED'] &&
+             isValidStringList(data.videoIds, 50) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidSubscription(data) {
+      return isStringBounded(data.channelId, 1, 128) &&
+             isStringBounded(data.channelName, 1, 60) &&
+             isStringBounded(data.channelHandle, 1, 40) &&
+             data.subscribed is bool &&
+             data.following is bool &&
+             data.bellEnabled is bool &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidNotification(data) {
+      return isStringBounded(data.category, 1, 40) &&
+             isStringBounded(data.title, 1, 100) &&
+             isStringBounded(data.body, 1, 300) &&
+             data.read is bool &&
+             data.createdAt is timestamp && data.createdAt <= request.time;
+    }
+
+    // --- COLLECTIONS ---
+
+    match /admins/{adminUid} {
+      allow get: if isSignedIn() && isValidId(adminUid) && (request.auth.uid == adminUid || isAdmin());
+      allow list, create, update, delete: if isAdmin();
+    }
+
+    match /platform_config/{configId} {
+      allow get: if isSignedIn() && configId == 'global';
+      allow list: if isAdmin();
+      allow create, update: if isAdmin() && configId == 'global' && isValidPlatformConfig(incoming());
+      allow delete: if false;
+    }
+
+    match /users/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && (request.auth.uid == userId || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isSignedIn() &&
+                       isValidId(userId) &&
+                       request.auth.uid == userId &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().role in ['USER', 'CREATOR'] &&
+                       incoming().accountStatus == 'ACTIVE' &&
+                       incoming().uploadRestricted == false &&
+                       incoming().commentRestricted == false &&
+                       isValidUserProfile(incoming());
+      allow update: if isSignedIn() &&
+                       isValidId(userId) &&
+                       isValidUserProfile(incoming()) && (
+                         isAdmin() || (
+                           request.auth.uid == userId &&
+                           incoming().userId == existing().userId &&
+                           incoming().createdAt == existing().createdAt &&
+                           incoming().role == existing().role &&
+                           incoming().accountStatus == existing().accountStatus &&
+                           incoming().uploadRestricted == existing().uploadRestricted &&
+                           incoming().commentRestricted == existing().commentRestricted &&
+                           incoming().monetizationEnabled == existing().monetizationEnabled
+                         )
+                       );
+      allow delete: if isSignedIn() && isValidId(userId) && (request.auth.uid == userId || isAdmin());
+
+      match /watchHistory/{historyId} {
+        allow list: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+        allow get, delete: if isSignedIn() && isValidId(historyId) && (request.auth.uid == userId || isAdmin());
+        allow create, update: if isSignedIn() && isValidId(historyId) && (request.auth.uid == userId || isAdmin()) && isValidWatchHistory(incoming());
+      }
+
+      match /playlists/{playlistId} {
+        allow list: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+        allow get, delete: if isSignedIn() && isValidId(playlistId) && (request.auth.uid == userId || isAdmin());
+        allow create: if isSignedIn() && isValidId(playlistId) && (request.auth.uid == userId || isAdmin()) && isValidPlaylist(incoming());
+        allow update: if isSignedIn() && isValidId(playlistId) && (request.auth.uid == userId || isAdmin()) &&
+                         incoming().createdAt == existing().createdAt && isValidPlaylist(incoming());
+      }
+
+      match /subscriptions/{channelId} {
+        allow list: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+        allow get, delete: if isSignedIn() && isValidId(channelId) && (request.auth.uid == userId || isAdmin());
+        allow create, update: if isSignedIn() && isValidId(channelId) && (request.auth.uid == userId || isAdmin()) &&
+                                 incoming().channelId == channelId && isValidSubscription(incoming());
+      }
+
+      match /notifications/{notifId} {
+        allow list: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+        allow get, delete: if isSignedIn() && isValidId(notifId) && (request.auth.uid == userId || isAdmin());
+        allow create, update: if isSignedIn() && isValidId(notifId) && (request.auth.uid == userId || isAdmin()) && isValidNotification(incoming());
+      }
+
+      match /searchHistory/{searchId} {
+        allow list: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+        allow get, delete: if isSignedIn() && isValidId(searchId) && (request.auth.uid == userId || isAdmin());
+        allow create, update: if isSignedIn() && isValidId(searchId) && (request.auth.uid == userId || isAdmin()) &&
+                                 isStringBounded(incoming().query, 1, 120) &&
+                                 incoming().createdAt is timestamp && incoming().createdAt <= request.time;
+      }
+
+      match /sessions/{sessionId} {
+        allow list: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+        allow get, delete: if isSignedIn() && isValidId(sessionId) && (request.auth.uid == userId || isAdmin());
+        allow create, update: if isSignedIn() && isValidId(sessionId) && (request.auth.uid == userId || isAdmin()) &&
+                                 isStringBounded(incoming().deviceName, 1, 80) &&
+                                 isStringBounded(incoming().platform, 1, 30) &&
+                                 incoming().active is bool &&
+                                 incoming().lastActiveAt is timestamp && incoming().lastActiveAt <= request.time;
+      }
+    }
+
+    match /channels/{channelId} {
+      allow get: if isSignedIn() && isValidId(channelId) && (existing().channelStatus == 'ACTIVE' || existing().ownerId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (existing().channelStatus == 'ACTIVE' || existing().ownerId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidId(channelId) &&
+                       incoming().ownerId == request.auth.uid &&
+                       incoming().channelStatus == 'ACTIVE' &&
+                       incoming().verified == false &&
+                       isValidChannel(incoming());
+      allow update: if isSignedIn() && isValidId(channelId) && isValidChannel(incoming()) && (
+        isAdmin() ||
+        (request.auth.uid == existing().ownerId &&
+         incoming().ownerId == existing().ownerId &&
+         incoming().createdAt == existing().createdAt &&
+         incoming().channelStatus == existing().channelStatus &&
+         incoming().verified == existing().verified &&
+         incoming().diff(existing()).affectedKeys().hasOnly(['name', 'handle', 'description', 'category', 'avatarUrl', 'avatarKey', 'bannerUrl', 'bannerKey', 'socialLinks', 'appearanceTheme', 'countryCode', 'languageCode', 'ownershipVerified', 'ownershipProofLabel', 'updatedAt'])) ||
+        (incoming().ownerId == existing().ownerId &&
+         incoming().createdAt == existing().createdAt &&
+         incoming().channelStatus == existing().channelStatus &&
+         incoming().verified == existing().verified &&
+         incoming().diff(existing()).affectedKeys().hasOnly(['subscriberCount', 'followerCount', 'totalViews', 'updatedAt']))
+      );
+      allow delete: if isSignedIn() && isValidId(channelId) && (existing().ownerId == request.auth.uid || isAdmin());
+    }
+
+    match /channel_handles/{handleKey} {
+      allow get: if isSignedIn() && isValidId(handleKey);
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(handleKey) &&
+                       !exists(/databases/$(database)/documents/channel_handles/$(handleKey)) &&
+                       incoming().ownerId == request.auth.uid &&
+                       isStringBounded(incoming().channelId, 1, 128) &&
+                       isStringBounded(incoming().handle, 2, 40) &&
+                       incoming().createdAt is timestamp && incoming().createdAt <= request.time;
+      allow update: if false;
+      allow delete: if isSignedIn() && isValidId(handleKey) && (existing().ownerId == request.auth.uid || isAdmin());
+    }
+
+    match /videos/{videoId} {
+      allow get: if isSignedIn() && isValidId(videoId) && (existing().visibility == 'PUBLIC' || existing().visibility == 'UNLISTED' || existing().creatorId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (existing().visibility == 'PUBLIC' || existing().creatorId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidId(videoId) &&
+                       incoming().creatorId == request.auth.uid &&
+                       isValidVideo(incoming());
+      allow update: if isSignedIn() && isValidId(videoId) && isValidVideo(incoming()) && (
+        isAdmin() ||
+        (existing().creatorId == request.auth.uid &&
+         incoming().creatorId == existing().creatorId &&
+         incoming().createdAt == existing().createdAt &&
+         incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'thumbnailKey', 'thumbnailUrl', 'visibility', 'category', 'languageCode', 'countryCode', 'hashtags', 'chaptersSummary', 'subtitlesText', 'monetized', 'scheduledPublishAtMs', 'copyrightStatus', 'updatedAt'])) ||
+        (incoming().creatorId == existing().creatorId &&
+         incoming().createdAt == existing().createdAt &&
+         incoming().diff(existing()).affectedKeys().hasOnly(['viewCount', 'likeCount', 'dislikeCount', 'commentCount', 'adRevenueInr', 'updatedAt']))
+      );
+      allow delete: if isSignedIn() && isValidId(videoId) && (existing().creatorId == request.auth.uid || isAdmin());
+
+      match /comments/{commentId} {
+        allow get: if isSignedIn() && isValidId(commentId) && (existing().status == 'VISIBLE' || existing().userId == request.auth.uid || isAdmin());
+        allow list: if isSignedIn() && (existing().status == 'VISIBLE' || existing().userId == request.auth.uid || isAdmin());
+        allow create: if isSignedIn() && isValidId(commentId) &&
+                         incoming().userId == request.auth.uid &&
+                         incoming().videoId == videoId &&
+                         isValidComment(incoming());
+        allow update: if isSignedIn() && isValidId(commentId) && isValidComment(incoming()) && (
+          isAdmin() ||
+          (existing().userId == request.auth.uid &&
+           incoming().userId == existing().userId &&
+           incoming().createdAt == existing().createdAt &&
+           incoming().diff(existing()).affectedKeys().hasOnly(['text', 'updatedAt'])) ||
+          (get(/databases/$(database)/documents/videos/$(videoId)).data.creatorId == request.auth.uid &&
+           incoming().userId == existing().userId &&
+           incoming().createdAt == existing().createdAt &&
+           incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt'])) ||
+          (incoming().userId == existing().userId &&
+           incoming().createdAt == existing().createdAt &&
+           incoming().diff(existing()).affectedKeys().hasOnly(['likeCount', 'updatedAt']))
+        );
+        allow delete: if isSignedIn() && isValidId(commentId) && (existing().userId == request.auth.uid || get(/databases/$(database)/documents/videos/$(videoId)).data.creatorId == request.auth.uid || isAdmin());
+      }
+    }
+
+    match /live_streams/{streamId} {
+      allow get: if isSignedIn() && isValidId(streamId) && (existing().status == 'LIVE' || existing().creatorId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (existing().status == 'LIVE' || existing().creatorId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidId(streamId) && incoming().creatorId == request.auth.uid && isValidLiveStream(incoming());
+      allow update: if isSignedIn() && isValidId(streamId) && isValidLiveStream(incoming()) && (
+        isAdmin() ||
+        (existing().creatorId == request.auth.uid &&
+         incoming().creatorId == existing().creatorId &&
+         incoming().createdAt == existing().createdAt &&
+         incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'status', 'blockedUserIds', 'viewerCount', 'updatedAt'])) ||
+        (incoming().creatorId == existing().creatorId &&
+         incoming().createdAt == existing().createdAt &&
+         incoming().diff(existing()).affectedKeys().hasOnly(['viewerCount', 'updatedAt']))
+      );
+      allow delete: if isSignedIn() && isValidId(streamId) && (existing().creatorId == request.auth.uid || isAdmin());
+
+      match /messages/{messageId} {
+        allow get: if isSignedIn() && isValidId(messageId) && existing().streamId == streamId;
+        allow list: if isSignedIn() && existing().streamId == streamId;
+        allow create: if isSignedIn() && isValidId(messageId) &&
+                         incoming().userId == request.auth.uid &&
+                         incoming().streamId == streamId &&
+                         isValidLiveMessage(incoming());
+        allow update: if false;
+        allow delete: if isSignedIn() && isValidId(messageId) && (existing().userId == request.auth.uid || isAdmin());
+      }
+    }
+
+    match /ad_campaigns/{campaignId} {
+      allow get: if isSignedIn() && isValidId(campaignId) && (existing().status == 'ACTIVE' || existing().advertiserId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (existing().status == 'ACTIVE' || existing().advertiserId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidId(campaignId) &&
+                       incoming().advertiserId == request.auth.uid &&
+                       incoming().status in ['PENDING_REVIEW', 'ACTIVE'] &&
+                       isValidAdCampaign(incoming());
+      allow update: if isSignedIn() && isValidId(campaignId) && isValidAdCampaign(incoming()) && (
+        isAdmin() ||
+        (existing().advertiserId == request.auth.uid &&
+         incoming().advertiserId == existing().advertiserId &&
+         incoming().createdAt == existing().createdAt &&
+         incoming().diff(existing()).affectedKeys().hasOnly(['title', 'ctaText', 'targetUrl', 'budgetInr', 'status', 'targetCountries', 'targetLanguages', 'updatedAt'])) ||
+        (existing().status == 'ACTIVE' &&
+         incoming().advertiserId == existing().advertiserId &&
+         incoming().createdAt == existing().createdAt &&
+         incoming().diff(existing()).affectedKeys().hasOnly(['impressions', 'validViews', 'clicks', 'spentInr', 'updatedAt']))
+      );
+      allow delete: if isSignedIn() && isValidId(campaignId) && (existing().advertiserId == request.auth.uid || isAdmin());
+    }
+
+    match /revenue_ledger/{entryId} {
+      allow get: if isSignedIn() && isValidId(entryId) && (existing().creatorId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (existing().creatorId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidId(entryId) &&
+                       (incoming().creatorId == request.auth.uid || isAdmin()) &&
+                       isValidRevenueEntry(incoming());
+      allow update: if isAdmin() && isValidId(entryId) && isValidRevenueEntry(incoming());
+      allow delete: if false;
+    }
+
+    match /payouts/{payoutId} {
+      allow get: if isSignedIn() && isValidId(payoutId) && (existing().creatorId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (existing().creatorId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidId(payoutId) &&
+                       (incoming().creatorId == request.auth.uid || isAdmin()) &&
+                       isValidPayout(incoming());
+      allow update: if isSignedIn() && isValidId(payoutId) && isValidPayout(incoming()) && (
+        isAdmin() ||
+        (existing().creatorId == request.auth.uid &&
+         existing().status == 'FAILED' &&
+         incoming().creatorId == existing().creatorId &&
+         incoming().createdAt == existing().createdAt &&
+         incoming().amountInr == existing().amountInr &&
+         incoming().diff(existing()).affectedKeys().hasOnly(['status', 'failureReason', 'updatedAt']))
+      );
+      allow delete: if false;
+    }
+
+    match /chats/{chatId} {
+      allow get: if isSignedIn() && isValidId(chatId) && (request.auth.uid in existing().memberUids || isAdmin());
+      allow list: if isSignedIn() && (request.auth.uid in existing().memberUids || isAdmin());
+      allow create: if isSignedIn() && isValidId(chatId) &&
+                       request.auth.uid in incoming().memberUids &&
+                       isValidChatThread(incoming());
+      allow update: if isSignedIn() && isValidId(chatId) &&
+                       request.auth.uid in existing().memberUids &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidChatThread(incoming()) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['lastMessage', 'blockedByUids', 'memberUids', 'title', 'updatedAt']);
+      allow delete: if isAdmin();
+
+      match /messages/{messageId} {
+        allow get: if isSignedIn() && isValidId(messageId) && (request.auth.uid in existing().memberUids || isAdmin());
+        allow list: if isSignedIn() && (request.auth.uid in existing().memberUids || isAdmin());
+        allow create: if isSignedIn() && isValidId(messageId) &&
+                         incoming().senderId == request.auth.uid &&
+                         incoming().chatId == chatId &&
+                         request.auth.uid in incoming().memberUids &&
+                         isValidChatMessage(incoming());
+        allow update: if false;
+        allow delete: if isSignedIn() && isValidId(messageId) && (existing().senderId == request.auth.uid || isAdmin());
+      }
+    }
+
+    match /copyright_claims/{claimId} {
+      allow get: if isSignedIn() && isValidId(claimId) && (existing().reporterId == request.auth.uid || existing().targetCreatorId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (existing().reporterId == request.auth.uid || existing().targetCreatorId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidId(claimId) &&
+                       (incoming().reporterId == request.auth.uid || incoming().targetCreatorId == request.auth.uid || isAdmin()) &&
+                       isValidCopyrightClaim(incoming());
+      allow update: if isSignedIn() && isValidId(claimId) && isValidCopyrightClaim(incoming()) && (
+        isAdmin() ||
+        (existing().targetCreatorId == request.auth.uid &&
+         existing().status in ['WARNING', 'UPHELD'] &&
+         incoming().status == 'APPEALED' &&
+         incoming().diff(existing()).affectedKeys().hasOnly(['status', 'appealNote', 'updatedAt']))
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /support_tickets/{ticketId} {
+      allow get: if isSignedIn() && isValidId(ticketId) && (existing().userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (existing().userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidId(ticketId) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().status == 'OPEN' &&
+                       isValidSupportTicket(incoming());
+      allow update: if isAdmin() && isValidId(ticketId) && isValidSupportTicket(incoming());
+      allow delete: if isAdmin();
+    }
+
+    match /admin_audit_logs/{logId} {
+      allow get, list: if isAdmin();
+      allow create: if isAdmin() && isValidId(logId) && incoming().adminUid == request.auth.uid && isValidAuditLog(incoming());
+      allow update, delete: if false;
+    }
+  }
+}
